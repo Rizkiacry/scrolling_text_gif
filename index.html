@@ -146,7 +146,7 @@
         
         <div class="control-group">
             <label>Text:</label>
-            <input type="text" id="text" value="1 ★ ass 2 ★ ugly 3 ★ bland 4 ★ cool 5 ★ fav 10 ★ peak">
+            <input type="text" id="text" value="10 ★ peak 5 ★ fav 4 ★ cool 3 ★ bland 2 ★ ugly 1 ★ ass">
         </div>
         
         <div class="control-group">
@@ -241,21 +241,36 @@
         });
         
         function parseRatings(text) {
-            // Split by spaces and group ratings
             const parts = text.split(/\s+/);
             const ratings = [];
+            let defaultColorIndex = 0;
             
             for (let i = 0; i < parts.length; i++) {
+                if (!parts[i]) continue;
+
                 // Check if this part starts a rating (number followed by ★)
                 if (i + 1 < parts.length && parts[i + 1] === '★') {
                     const rating = parts[i];
                     const star = parts[i + 1];
                     const label = parts[i + 2] || '';
+                    
+                    let colorIndex = parseInt(rating) - 1;
+                    if (isNaN(colorIndex)) {
+                        colorIndex = defaultColorIndex % ratingColors.length;
+                    }
+                    
                     ratings.push({
                         text: `${rating} ${star} ${label}`,
-                        colorIndex: parseInt(rating) - 1
+                        colorIndex: colorIndex
                     });
                     i += 2; // Skip star and label
+                } else {
+                    // Regular text
+                    ratings.push({
+                        text: parts[i],
+                        colorIndex: defaultColorIndex % ratingColors.length
+                    });
+                    defaultColorIndex++;
                 }
             }
             
@@ -285,6 +300,9 @@
             // Add extra spacing at the end before loop
             totalWidth += spacing;
             
+            // Safeguard against infinite loop if text is empty
+            if (totalWidth <= spacing || ratings.length === 0) return 0;
+            
             // Draw text multiple times for seamless scroll
             const repetitions = Math.ceil(canvasWidth / totalWidth) + 2;
             
@@ -293,7 +311,11 @@
                 
                 for (let i = 0; i < ratings.length; i++) {
                     const rating = ratings[i];
-                    const colorIndex = rating.colorIndex % ratingColors.length;
+                    
+                    // Handle color index safely (including negative numbers)
+                    let colorIndex = rating.colorIndex % ratingColors.length;
+                    if (colorIndex < 0) colorIndex += ratingColors.length;
+                    
                     ctx.fillStyle = ratingColors[colorIndex];
                     ctx.fillText(rating.text, x, canvasHeight / 2);
                     
